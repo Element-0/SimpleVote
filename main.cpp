@@ -3,7 +3,7 @@
 #include "settings.h"
 #include "playerdb.h"
 
-DEF_LOGGER("SampleMod");
+DEF_LOGGER("SimpleVote");
 DEFAULT_SETTINGS(settings);
 
 // PS: Reserved for compatibility purposes

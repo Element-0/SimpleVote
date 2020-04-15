@@ -1,24 +1,21 @@
 #pragma once
 
-#include <yaml.h>
+#include <memory>
 #include <string>
+#include <functional>
+
+#include <yaml.h>
 
 struct Settings {
-  bool optionA = false;
-  bool optionB = true;
-
-  struct Nested {
-    std::string value;
-
-    template <typename IO> static inline bool io(IO f, Nested &nested, YAML::Node &node) {
-      return f(nested.value, node["value"]);
-    }
-  } nested;
+  std::string identify;
 
   template <typename IO> static inline bool io(IO f, Settings &settings, YAML::Node &node) {
-    return f(settings.optionA, node["opt-a"]) && f(settings.optionB, node["opt-b"]) &&
-           f(settings.nested, node["nested"]);
+    return f(settings.identify, node["identify"]);
   }
 };
 
 inline Settings settings;
+extern void InitHttp();
+extern void OnExit();
+extern std::string Fetch(wchar_t const *path);
+extern void AddTask(std::function<void()> &&fn);

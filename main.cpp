@@ -1,26 +1,48 @@
+#include <Command/Command.h>
+#include <Command/CommandOrigin.h>
+#include <Command/CommandOutput.h>
+#include <Command/CommandRegistry.h>
+#include <Actor/ServerPlayer.h>
+
 #include <dllentry.h>
+#include <exception>
 #include <log.h>
+#include <command.h>
+#include <playerdb.h>
+
 #include "settings.h"
-#include "playerdb.h"
 
 DEF_LOGGER("SimpleVote");
 DEFAULT_SETTINGS(settings);
 
-// PS: Reserved for compatibility purposes
-// If it is not necessary, keep both functions empty
-// Initialization can be done in the PreInit function
-// Incorrect use of this function may cause a crash
 void dllenter() {}
 void dllexit() {}
 
-void PreInit() {
-  LOGV("pre init");
-  // You can use the event system to receive and process events
-  // The following is an example
-  Mod::PlayerDatabase::GetInstance().AddListener(SIG("joined"), [](Mod::PlayerEntry const &entry) {
-    LOGV("joined name: %s, xuid: %d") % entry.name % entry.xuid;
-  });
-  Mod::PlayerDatabase::GetInstance().AddListener(
-      SIG("left"), [](Mod::PlayerEntry const &entry) { LOGV("left name: %s, xuid: %d") % entry.name % entry.xuid; });
+void BeforeUnload() {
+  OnExit();
 }
-void PostInit() { LOGV("post init"); }
+
+class VoteCommand : public Command {
+public:
+  void execute(const CommandOrigin &orig, CommandOutput &outp) override {
+    AddTask([] {
+      try {
+        auto str = Fetch(L"/v2/top/10");
+        LOGV("ret: %s") % str;
+      } catch (std::exception const &ex) { LOGE("err: %s") % ex.what(); }
+    });
+    outp.success();
+  }
+
+  static void setup(CommandRegistry *registry) {
+    using namespace commands;
+    registry->registerCommand(
+        "vote", "commands.vote.description", CommandPermissionLevel::GameMasters, CommandFlagCheat, CommandFlagNone);
+    registry->registerOverload<VoteCommand>("vote");
+  }
+};
+
+void PreInit() {
+  InitHttp();
+  Mod::CommandSupport::GetInstance().AddListener(SIG("loaded"), VoteCommand::setup);
+}
